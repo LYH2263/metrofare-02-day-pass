@@ -15,10 +15,15 @@ def init_db():
     CREATE TABLE IF NOT EXISTS edges(a TEXT, b TEXT);
     CREATE TABLE IF NOT EXISTS fare_rules(id INTEGER PRIMARY KEY, max_hops INTEGER, price REAL);
     CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT);
+    CREATE TABLE IF NOT EXISTS day_pass_config(
+        id INTEGER PRIMARY KEY CHECK(id = 1), day TEXT, cap REAL, enabled INTEGER);
     CREATE TABLE IF NOT EXISTS calc_runs(
         id INTEGER PRIMARY KEY, kind TEXT, input_json TEXT, result_json TEXT, created_at TEXT);
     """
     )
+    if conn.execute("SELECT COUNT(*) c FROM day_pass_config").fetchone()["c"] == 0:
+        conn.execute("INSERT INTO day_pass_config(id, day, cap, enabled) VALUES (1, date('now'), 10.0, 0)")
+        conn.commit()
     if conn.execute("SELECT COUNT(*) c FROM stations").fetchone()["c"] == 0:
         for code, name in [
             ("A1", "城站"),

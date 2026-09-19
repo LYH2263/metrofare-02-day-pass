@@ -7,4 +7,4 @@ router = APIRouter(tags=["quote"])
 @router.post("/quote")
 def post_quote(body: QuoteRequest):
     with MetroService() as s:
-        return s.quote(body.start, body.end, body.persist)
+        return s.quote(body.start, body.end, body.persist, body.use_day_pass)

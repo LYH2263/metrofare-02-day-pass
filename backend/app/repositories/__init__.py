@@ -1,1 +1,1 @@
-from app.repositories import edges, fare_rules, runs, settings, stations
+from app.repositories import day_pass, edges, fare_rules, runs, settings, stations
