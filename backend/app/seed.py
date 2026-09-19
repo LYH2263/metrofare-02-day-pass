@@ -2,6 +2,7 @@ import json
 
 from app.db import connect
 from app.engines.route_quote import quote_route
+from app.modules import day_pass
 
 EDGES = [("A1", "A2"), ("A2", "A3"), ("A2", "B1"), ("B1", "B2")]
 RULES = [{"max_hops": 2, "price": 3.0}, {"max_hops": 4, "price": 4.0}, {"max_hops": None, "price": 6.0}]
@@ -19,6 +20,7 @@ def init_db():
         id INTEGER PRIMARY KEY, kind TEXT, input_json TEXT, result_json TEXT, created_at TEXT);
     """
     )
+    conn.executescript(day_pass.DDL)
     if conn.execute("SELECT COUNT(*) c FROM stations").fetchone()["c"] == 0:
         for code, name in [
             ("A1", "城站"),
@@ -41,4 +43,6 @@ def init_db():
             ("quote", json.dumps({"start": "A1", "end": "A3"}), json.dumps(q1, ensure_ascii=False)),
         )
         conn.commit()
+    if day_pass.get_config(conn) is None:
+        day_pass.save_config(conn, day_pass.today_str(), 5.0, True)
     conn.close()

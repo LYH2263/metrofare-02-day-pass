@@ -1,5 +1,6 @@
 from app.db import connect
 from app.engines.route_quote import quote_route
+from app.modules import day_pass
 from app.repositories import edges as edges_repo
 from app.repositories import fare_rules as rules_repo
 from app.repositories import runs as runs_repo
@@ -35,14 +36,26 @@ class MetroService:
     def settings(self):
         return settings_repo.get_map(self._conn)
 
-    def quote(self, start: str, end: str, persist: bool):
+    def quote(self, start: str, end: str, persist: bool, use_day_pass: bool = False):
         edges = edges_repo.list_pairs(self._conn)
         rules = rules_repo.as_calc_rules(self._conn)
         result = quote_route(edges, start, end, rules)
+        if result.get("reachable"):
+            config = day_pass.get_config(self._conn)
+            result.update(day_pass.apply_day_pass(result["fare"], config, use_day_pass, day_pass.today_str()))
+        else:
+            result.update({"payable": None, "day_pass": None})
         run_id = None
         if persist and result.get("reachable"):
-            run_id = runs_repo.insert(self._conn, "quote", {"start": start, "end": end}, result)
+            payload = {"start": start, "end": end, "use_day_pass": use_day_pass}
+            run_id = runs_repo.insert(self._conn, "quote", payload, result)
         return {"run_id": run_id, **result}
+
+    def day_pass(self):
+        return day_pass.get_config(self._conn) or {"day": None, "cap": None, "enabled": False}
+
+    def save_day_pass(self, day: str, cap: float, enabled: bool):
+        return day_pass.save_config(self._conn, day, cap, enabled)
 
     def history(self, limit=50):
         return runs_repo.list_recent(self._conn, limit)
